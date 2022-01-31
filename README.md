@@ -1,4 +1,4 @@
-# Hypervirless Virtio / ZCU102
+# Hypervisorless Virtio / ZCU102
 Hypervisorless virtio build environment for Xilinx ZCU102 with Petalinux and Zephyr as auxiliary runtime
 
 

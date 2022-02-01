@@ -11,8 +11,7 @@ Hypervisorless virtio build environment for Xilinx ZCU102 with Petalinux and Zep
 sudo apt install python3-sphinx qemu-user qemu-user-static kpartx
 ```
 
-### Zephyr prerequisites (reference: 
-https://docs.zephyrproject.org/latest/getting_started/index.html)
+### Zephyr prerequisites (reference: https://docs.zephyrproject.org/latest/getting_started/index.html)
 ```
 wget https://apt.kitware.com/kitware-archive.sh
 sudo bash kitware-archive.sh
@@ -49,15 +48,17 @@ git clone https://github.com/dgibson/dtc.git
 
 git clone https://github.com/OpenAMP/kvmtool.git -b hvl-integration
 
+https://github.com/danmilea/zephyr - branch hvl-virtio-0
+
 
 ## Build artifacts 
 
 - QEMU Xilinx is installed in **$HVL_WORKSPACE/qemu_inst/** and is used to set up the ZCU 102 emulation infrastructure.
-
 - A Linux kernel image is based the configuration from util/config_hvl is built and copied to **$HVL_WORKSPACE/tftp/**
 - An updated device tree machine model which includes util/system-user.dtsi is compiled and copied to **$HVL_WORKSPACE/tftp/**
 - A ZCU102 mailbox driver module is copied to **$HVL_WORKSPACE/tftp/**
 - An SD card file system image based on xilinx-zcu102-2020.2/pre-built/linux/images/petalinux-sdimage.wic is copied to the workspace directory.
+- A Zephyr application named zephyr.elf based on the rng_net hypervisorless virtio sample
 
 > The files in **$HVL_WORKSPACE/tftp/** are used during the boot phase.
 ## Finalizing the setup
@@ -79,7 +80,7 @@ Please inspect the commands and, if satisfied they will not cause your system to
 
 ## Runtime
 
-The build script also prints a set of commands which can be used to run the QEMU emulator for ZCU 102:
+The build script prints a set of commands which can be used to run the QEMU emulator for ZCU 102:
 
 E.g.
 ```

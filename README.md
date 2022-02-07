@@ -1,14 +1,22 @@
 # Hypervisorless Virtio / ZCU102
-Hypervisorless virtio build environment for Xilinx ZCU102 with Petalinux and Zephyr as auxiliary runtime
+*Hypervisorless virtio build environment for Xilinx ZCU102 with Petalinux and Zephyr as auxiliary runtime*
 
+This repository includes the infrastructure required to build and deploy a hypervisorless virtio environment on Xilinx ZCU102 (QEMU) with PetaLinux running on Cortex A53 and Zephyr running on Cortex R5.
 
-> These build instructions have been validated on Ubuntu 20.04.
+The physical machine monitor (PMM) which includes the virtio back-ends runs on PetaLinux and communicates with the Zephyr auxiliary runtime over shared memory.
+
+Notes:
+- A complete build will require at least 34 GB of free disk space.
+- These build instructions have been validated on Ubuntu 20.04.
+
+More information on Hypervisorless virtio is available here: https://www.openampproject.org/news/hypervisorless-virtio-blog/
+
 # Prerequisites
 
 ### Host tools:
 
 ```
-sudo apt install python3-sphinx qemu-user qemu-user-static kpartx
+sudo apt install python3-sphinx qemu-user qemu-user-static kpartx libpixman-1-dev libssl-dev ca-certificates apt-transport-https build-essential
 ```
 
 ### Zephyr prerequisites (reference: https://docs.zephyrproject.org/latest/getting_started/index.html)
@@ -40,25 +48,24 @@ env HVL_WORKSPACE=/home/dan/workspaces/hvlws bash build.sh
 The build.sh build script clones the following source repositories:
 
 
-git clone https://github.com/Xilinx/qemu.git -b xilinx-v2021.1
+- https://github.com/Xilinx/qemu.git - branch xilinx-v2021.1
 
-git clone https://github.com/Xilinx/linux-xlnx.git -b xilinx-v2020.2
+- https://github.com/Xilinx/linux-xlnx.git - branch xilinx-v2020.2
 
-git clone https://github.com/dgibson/dtc.git
+- https://github.com/dgibson/dtc.git
 
-git clone https://github.com/OpenAMP/kvmtool.git -b hvl-integration
+- https://github.com/OpenAMP/kvmtool.git - branch hvl-integration
 
-https://github.com/danmilea/zephyr - branch hvl-virtio-0
+- https://github.com/danmilea/zephyr - branch hvl-virtio-0
 
 
 ## Build artifacts 
 
-- QEMU Xilinx is installed in **$HVL_WORKSPACE/qemu_inst/** and is used to set up the ZCU 102 emulation infrastructure.
+- QEMU Xilinx is installed in **$HVL_WORKSPACE/qemu_inst/** and is used to set up the ZCU102 emulation infrastructure.
 - A Linux kernel image is based the configuration from util/config_hvl is built and copied to **$HVL_WORKSPACE/tftp/**
 - An updated device tree machine model which includes util/system-user.dtsi is compiled and copied to **$HVL_WORKSPACE/tftp/**
-- A ZCU102 mailbox driver module is copied to **$HVL_WORKSPACE/tftp/**
-- An SD card file system image based on xilinx-zcu102-2020.2/pre-built/linux/images/petalinux-sdimage.wic is copied to the workspace directory.
-- A Zephyr application named zephyr.elf based on the rng_net hypervisorless virtio sample
+- An SD card file system image based on xilinx-zcu102-2020.2/pre-built/linux/images/petalinux-sdimage.wic is copied as **$HVL_WORKSPACE/linux-sd.wic**
+- Binaries to be copied in the file system image are placed **$HVL_WORKSPACE/target**: Linux kernel modules, ZCU102 mailbox driver module, a Zephyr application named zephyr.elf based on the rng_net hypervisorless virtio sample and the Physical Machine Monitor based on kvmtool and its dependencies.
 
 > The files in **$HVL_WORKSPACE/tftp/** are used during the boot phase.
 ## Finalizing the setup
@@ -67,20 +74,20 @@ At the end of its execution the build.sh script prints the remaining set of comm
 
 E.g.
 
-    sudo kpartx -av /home/dan/workspaces/hvlws_tmp/linux-sd.wic
-    export SDLOOPDEV=`basename $(losetup |grep /home/dan/workspaces/hvlws_tmp/linux-sd.wic|awk '{print $1}')`
-    sudo mount /dev/mapper/${SDLOOPDEV}p2 /home/dan/workspaces/hvlws_tmp/mnt
-    sudo cp -a /home/dan/workspaces/hvlws_tmp/target/* /home/dan/workspaces/hvlws_tmp/mnt/
-    sudo chmod +x /home/dan/workspaces/hvlws_tmp/mnt/chr_setup.sh
-    sudo chroot /home/dan/workspaces/hvlws_tmp/mnt/ bash -c /chr_setup.sh
-    sudo umount /home/dan/workspaces/hvlws_tmp/mnt
-    sudo kpartx -dv /home/dan/workspaces/hvlws_tmp/linux-sd.wic
+    sudo kpartx -av /home/dan/workspaces/hvlws/linux-sd.wic
+    export SDLOOPDEV=`basename $(losetup |grep /home/dan/workspaces/hvlws/linux-sd.wic|awk '{print $1}')`
+    sudo mount /dev/mapper/${SDLOOPDEV}p2 /home/dan/workspaces/hvlws/mnt
+    sudo cp -a /home/dan/workspaces/hvlws/target/* /home/dan/workspaces/hvlws/mnt/
+    sudo chmod +x /home/dan/workspaces/hvlws/mnt/chr_setup.sh
+    sudo chroot /home/dan/workspaces/hvlws/mnt/ bash -c /chr_setup.sh
+    sudo umount /home/dan/workspaces/hvlws/mnt
+    sudo kpartx -dv /home/dan/workspaces/hvlws/linux-sd.wic
 
 Please inspect the commands and, if satisfied they will not cause your system to melt down, run them.
 
 ## Runtime
 
-The build script prints a set of commands which can be used to run the QEMU emulator for ZCU 102:
+The build script prints a set of commands which can be used to run the QEMU emulator for ZCU102:
 
 E.g.
 ```
@@ -88,12 +95,12 @@ QEMU PMU
 --------
 rm /tmp/qemu-memory-_*
 
-/home/dan/workspaces/hvlws_tmp/qemu_inst/bin/qemu-system-microblazeel -M microblaze-fdt -nographic -dtb /home/dan/workspaces/hvlws_tmp/xilinx-zcu102-2020.2/pre-built/linux/images/zynqmp-qemu-multiarch-pmu.dtb -kernel /home/dan/workspaces/hvlws_tmp/xilinx-zcu102-2020.2/pre-built/linux/images/pmu_rom_qemu_sha3.elf -device loader,file=/home/dan/workspaces/hvlws_tmp/xilinx-zcu102-2020.2/pre-built/linux/images/pmufw.elf -machine-path /tmp
+/home/dan/workspaces/hvlws/qemu_inst/bin/qemu-system-microblazeel -M microblaze-fdt -nographic -dtb /home/dan/workspaces/hvlws/xilinx-zcu102-2020.2/pre-built/linux/images/zynqmp-qemu-multiarch-pmu.dtb -kernel /home/dan/workspaces/hvlws/xilinx-zcu102-2020.2/pre-built/linux/images/pmu_rom_qemu_sha3.elf -device loader,file=/home/dan/workspaces/hvlws/xilinx-zcu102-2020.2/pre-built/linux/images/pmufw.elf -machine-path /tmp
 
 PETALINUX (A53)
 ---------------
 
-/home/dan/workspaces/hvlws_tmp/qemu_inst/bin/qemu-system-aarch64 -M arm-generic-fdt -dtb /home/dan/workspaces/hvlws_tmp/xilinx-zcu102-2020.2/pre-built/linux/images/zynqmp-qemu-multiarch-arm.dtb -device loader,file=/home/dan/workspaces/hvlws_tmp/xilinx-zcu102-2020.2/pre-built/linux/images/bl31.elf,cpu-num=0 -global xlnx,zynqmp-boot.cpu-num=0 -global xlnx,zynqmp-boot.use-pmufw=true -machine-path /tmp -net nic -net nic -net nic -net nic -net user,tftp=/home/dan/workspaces/hvlws_tmp/tftp,hostfwd=tcp::30022-:22 -serial mon:stdio -m 4G --nographic -serial telnet:localhost:4321,server,wait=off -echr 2 -drive file=/home/dan/workspaces/hvlws_tmp/linux-sd.wic,if=sd,format=raw,index=1 -device loader,file=/home/dan/workspaces/hvlws_tmp/xilinx-zcu102-2020.2/pre-built/linux/images/u-boot.elf
+/home/dan/workspaces/hvlws/qemu_inst/bin/qemu-system-aarch64 -M arm-generic-fdt -dtb /home/dan/workspaces/hvlws/xilinx-zcu102-2020.2/pre-built/linux/images/zynqmp-qemu-multiarch-arm.dtb -device loader,file=/home/dan/workspaces/hvlws/xilinx-zcu102-2020.2/pre-built/linux/images/bl31.elf,cpu-num=0 -global xlnx,zynqmp-boot.cpu-num=0 -global xlnx,zynqmp-boot.use-pmufw=true -machine-path /tmp -net nic -net nic -net nic -net nic -net user,tftp=/home/dan/workspaces/hvlws/tftp,hostfwd=tcp::30022-:22 -serial mon:stdio -m 4G --nographic -serial telnet:localhost:4321,server,wait=off -echr 2 -drive file=/home/dan/workspaces/hvlws/linux-sd.wic,if=sd,format=raw,index=1 -device loader,file=/home/dan/workspaces/hvlws/xilinx-zcu102-2020.2/pre-built/linux/images/u-boot.elf
 
 U-Boot configuration: 
 

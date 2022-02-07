@@ -73,8 +73,6 @@ if [ ! -f $HOME/.local/bin/sphinx-build ]; then
 	fi
 fi
 
-TMP1
-
 cd $HVL_WORKSPACE
 source $HVL_WORKSPACE_PATH/petalinux/2020.2/environment-setup-aarch64-xilinx-linux
 which aarch64-xilinx-linux-gcc
@@ -148,12 +146,12 @@ cp -a $HVL_WORKSPACE_PATH/mod_install/lib $HVL_WORKSPACE_PATH/target/
 #zephyr
 
 cd $HVL_WORKSPACE_PATH
-wget -c https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.13.2/zephyr-sdk-0.13.2-linux-x86_64-setup.run
+wget --no-check-certificate -c https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.13.2/zephyr-sdk-0.13.2-linux-x86_64-setup.run
 
 
 cd $HVL_WORKSPACE_PATH
 chmod +x zephyr-sdk-0.13.2-linux-x86_64-setup.run
-(echo y) | ./zephyr-sdk-0.13.2-linux-x86_64-setup.run -- -d $HVL_WORKSPACE_PATH/zephyr-sdk-0.13.2
+./zephyr-sdk-0.13.2-linux-x86_64-setup.run -- -y -d $HVL_WORKSPACE_PATH/zephyr-sdk-0.13.2
 
 export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 export ZEPHYR_SDK_INSTALL_DIR=$HVL_WORKSPACE_PATH/zephyr-sdk-0.13.2

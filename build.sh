@@ -44,6 +44,7 @@ cd $HVL_WORKSPACE_PATH/xilinx-zynqmp-common-v2020.2
 (echo $HVL_WORKSPACE_PATH/petalinux/2020.2; echo Y) | ./sdk.sh
 
 #qemu xilinx
+cd $HVL_WORKSPACE
 git clone https://github.com/Xilinx/qemu.git -b xilinx-v2021.1
 check_status $? $LINENO
 

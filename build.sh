@@ -169,6 +169,10 @@ git remote add gh https://github.com/danmilea/zephyr.git
 git fetch gh
 git checkout -b hvl-virtio-0 gh/hvl-virtio-0
 
+cd ..
+west update
+cd -
+
 #filter petalinux host tools from PATH 
 export PATH=$(echo $PATH | tr ':' '\n'|grep -v 'petalinux/2020'|tr '\n' ':')
 

@@ -25,7 +25,7 @@ The kernel image is **xilinx-zynqmp-common-v2022.1/Image**.
 The device tree file oa.dts is derived from **xilinx-zcu102-2022.1/pre-built/linux/images/openamp.dtb** with all uart1 entries removed.
 
 ```
-dtc -I oa.dts -O dtb oa.dts > oa.dtb
+dtc -I dts -O dtb oa.dts > oa.dtb
 ```
 
 ## Zephyr application

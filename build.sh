@@ -2,8 +2,8 @@
 
 #set -x
 
-XLNX_COMMON_PACKAGE=/home/dan/workspaces/hvl_dl/xilinx-zynqmp-common-v2020.2.tar.gz
-XLNX_ZCU102_BSP=/home/dan/workspaces/hvl_dl/xilinx-zcu102-v2020.2-final.bsp
+XLNX_COMMON_PACKAGE=${XLNX_COMMON_PACKAGE:-/home/dan/workspaces/hvl_dl/xilinx-zynqmp-common-v2020.2.tar.gz}
+XLNX_ZCU102_BSP=${XLNX_ZCU102_BSP:-/home/dan/workspaces/hvl_dl/xilinx-zcu102-v2020.2-final.bsp}
 
 function check_status { if [ $1 != 0 ]; then echo "Error ${1} @ [${MY_NAME}:${2}]. EXIT" ; exit ${1};fi }
 MY_NAME="$(basename $0)"
@@ -88,6 +88,8 @@ cp $__SRCDIR/util/config_hvl .config
 CROSS_COMPILE=aarch64-xilinx-linux- ARCH=arm64 make olddefconfig
 check_status $? $LINENO
 
+sed -i 's%YYLTYPE yylloc%extern YYLTYPE yylloc%' scripts/dtc/dtc-lexer.l
+
 CROSS_COMPILE=aarch64-xilinx-linux- ARCH=arm64 make -j$(nproc)
 check_status $? $LINENO
 
@@ -158,27 +160,20 @@ export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 export ZEPHYR_SDK_INSTALL_DIR=$HVL_WORKSPACE_PATH/zephyr-sdk-0.13.2
 
 
-west init zephyrproject
+west init -m https://github.com/OpenAMP/openamp-zephyr-staging.git --mr virtio-exp zephyrproject
 cd zephyrproject
 west update
 west zephyr-export
 pip3 install --user -r zephyr/scripts/requirements.txt
 
-cd $HVL_WORKSPACE_PATH/zephyrproject/zephyr
-git remote add gh https://github.com/danmilea/zephyr.git
-git fetch gh
-git checkout -b hvl-virtio-0 gh/hvl-virtio-0
-
-cd ..
-west update
-cd -
+cd $HVL_WORKSPACE_PATH/zephyrproject
 
 #filter petalinux host tools from PATH 
 export PATH=$(echo $PATH | tr ':' '\n'|grep -v 'petalinux/2020'|tr '\n' ':')
 
-west build -p auto -b qemu_cortex_r5  samples/hvl/rng_net/
+west build -p auto -b qemu_cortex_r5 zephyr/samples/virtio/hvl_net_rng/
 
-cp $HVL_WORKSPACE_PATH/zephyrproject/zephyr/build/zephyr/zephyr.elf $HVL_WORKSPACE_PATH/target/hvl/
+cp $HVL_WORKSPACE_PATH/zephyrproject/build/zephyr/zephyr.elf $HVL_WORKSPACE_PATH/target/hvl/
 #S4
 
 
@@ -245,7 +240,7 @@ setenv initrd_high 78000000; booti 200000 - 100000;
 
 echo '
 After booting, Linux on A53 can also be accessed as:
-telnet localhost 4321
+ssh root@localhost -p 30022
 '
 
 #/home/dan/projects/cto/appstar/src/zynq_ipi/hvl/binaries/u-boot_d1.elf

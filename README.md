@@ -56,8 +56,7 @@ The build.sh build script clones the following source repositories:
 
 - https://github.com/OpenAMP/kvmtool.git - branch hvl-integration
 
-- https://github.com/danmilea/zephyr - branch hvl-virtio-0
-
+- https://github.com/OpenAMP/openamp-zephyr-staging.git - branch virtio-exp
 
 ## Build artifacts 
 

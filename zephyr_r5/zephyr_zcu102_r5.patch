@@ -1,0 +1,23 @@
+diff --git a/boards/arm/qemu_cortex_r5/Kconfig.board b/boards/arm/qemu_cortex_r5/Kconfig.board
+index 9824aeb5bc..60e6e7a5e6 100644
+--- a/boards/arm/qemu_cortex_r5/Kconfig.board
++++ b/boards/arm/qemu_cortex_r5/Kconfig.board
+@@ -4,4 +4,4 @@
+ config BOARD_QEMU_CORTEX_R5
+ 	bool "Cortex-R5 Emulation (QEMU)"
+ 	depends on SOC_XILINX_ZYNQMP_RPU
+-	select QEMU_TARGET
++	#select QEMU_TARGET
+diff --git a/soc/arm/xilinx_zynqmp/arm_mpu_regions.c b/soc/arm/xilinx_zynqmp/arm_mpu_regions.c
+index 7e0b6e3cd6..f10ba5d94e 100644
+--- a/soc/arm/xilinx_zynqmp/arm_mpu_regions.c
++++ b/soc/arm/xilinx_zynqmp/arm_mpu_regions.c
+@@ -44,7 +44,7 @@ static const struct arm_mpu_region mpu_regions[] = {
+ 
+ 	MPU_REGION_ENTRY("SRAM_PRIV",
+ 			0x00000000,
+-			REGION_64M,
++			REGION_2G,
+ 			MPUTYPE_PRIV_WBWACACHE),
+ 
+ 	MPU_REGION_ENTRY("SRAM",

@@ -5,6 +5,8 @@
 XLNX_COMMON_PACKAGE=${XLNX_COMMON_PACKAGE:-/home/dan/workspaces/hvl_dl/xilinx-zynqmp-common-v2020.2.tar.gz}
 XLNX_ZCU102_BSP=${XLNX_ZCU102_BSP:-/home/dan/workspaces/hvl_dl/xilinx-zcu102-v2020.2-final.bsp}
 
+BUILD_QEMU_XILINX=0
+
 function check_status { if [ $1 != 0 ]; then echo "Error ${1} @ [${MY_NAME}:${2}]. EXIT" ; exit ${1};fi }
 MY_NAME="$(basename $0)"
 __SRCDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -43,35 +45,40 @@ rm $(basename $XLNX_ZCU102_BSP).tar.gz
 cd $HVL_WORKSPACE_PATH/xilinx-zynqmp-common-v2020.2
 (echo $HVL_WORKSPACE_PATH/petalinux/2020.2; echo Y) | ./sdk.sh
 
-#qemu xilinx
-cd $HVL_WORKSPACE
-git clone https://github.com/Xilinx/qemu.git -b xilinx-v2021.1
-check_status $? $LINENO
+if [ $BUILD_QEMU_XILINX -eq 1 ]; then
+	#qemu xilinx
+	cd $HVL_WORKSPACE
+	git clone https://github.com/Xilinx/qemu.git -b xilinx-v2021.1
+	check_status $? $LINENO
 
-#workaround for sphinx-build version mismatch between zephyr and qemu zilinx
-if [ -f $HOME/.local/bin/sphinx-build ]; then
-	mv $HOME/.local/bin/sphinx-build $HOME/.local/bin/sphinx-build_tmp_bk
-fi
-
-rm -rf qemu_build
-mkdir qemu_build
-cd qemu_build
-../qemu/configure --target-list="aarch64-softmmu,microblazeel-softmmu,arm-softmmu" \
---enable-debug --enable-fdt --disable-kvm \
---disable-vnc \
---prefix=$HVL_WORKSPACE_PATH/qemu_inst
-
-check_status $? $LINENO
-
-#make -j$(nproc)
-make install -j$(nproc)
-check_status $? $LINENO
-
-#workaround for sphinx-build version mismatch between zephyr and qemu zilinx
-if [ ! -f $HOME/.local/bin/sphinx-build ]; then
-	if [ -f $HOME/.local/bin/sphinx-build_tmp_bk ]; then
-		mv $HOME/.local/bin/sphinx-build_tmp_bk $HOME/.local/bin/sphinx-build
+	#workaround for sphinx-build version mismatch between zephyr and qemu zilinx
+	if [ -f $HOME/.local/bin/sphinx-build ]; then
+		mv $HOME/.local/bin/sphinx-build $HOME/.local/bin/sphinx-build_tmp_bk
 	fi
+
+	rm -rf qemu_build
+	mkdir qemu_build
+	cd qemu_build
+	../qemu/configure --target-list="aarch64-softmmu,microblazeel-softmmu,arm-softmmu" \
+	--enable-debug --enable-fdt --disable-kvm \
+	--disable-vnc \
+	--prefix=$HVL_WORKSPACE_PATH/qemu_inst
+
+	check_status $? $LINENO
+
+	#make -j$(nproc)
+	make install -j$(nproc)
+	check_status $? $LINENO
+
+	#workaround for sphinx-build version mismatch between zephyr and qemu zilinx
+	if [ ! -f $HOME/.local/bin/sphinx-build ]; then
+		if [ -f $HOME/.local/bin/sphinx-build_tmp_bk ]; then
+			mv $HOME/.local/bin/sphinx-build_tmp_bk $HOME/.local/bin/sphinx-build
+		fi
+	fi
+	QEMU_XLNX_PATH=$HVL_WORKSPACE_PATH/qemu_inst/bin
+else
+	QEMU_XLNX_PATH=$HVL_WORKSPACE_PATH/zephyr-sdk-0.15.1/sysroots/x86_64-pokysdk-linux/usr/xilinx/bin
 fi
 
 cd $HVL_WORKSPACE
@@ -122,7 +129,7 @@ check_status $? $LINENO
 
 cd $HVL_WORKSPACE_PATH
 
-git clone https://github.com/OpenAMP/kvmtool.git -b hvl-integration
+git clone https://github.com/OpenAMP/openamp-kvmtool-staging.git -b hvl-integration kvmtool
 check_status $? $LINENO
 cd kvmtool
 CROSS_COMPILE=aarch64-xilinx-linux- ARCH=arm64 HVL_WORKSPACE=$HVL_WORKSPACE_PATH make -j8
@@ -149,16 +156,16 @@ cp -a $HVL_WORKSPACE_PATH/mod_install/lib $HVL_WORKSPACE_PATH/target/
 #zephyr
 
 cd $HVL_WORKSPACE_PATH
-wget --no-check-certificate -c https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.13.2/zephyr-sdk-0.13.2-linux-x86_64-setup.run
+wget --no-check-certificate -c https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.1/zephyr-sdk-0.15.1_linux-x86_64.tar.gz
+tar xzf zephyr-sdk-0.15.1_linux-x86_64.tar.gz
+cd $HVL_WORKSPACE_PATH/zephyr-sdk-0.15.1
+./setup.sh -t all -h -c
 
-
-cd $HVL_WORKSPACE_PATH
-chmod +x zephyr-sdk-0.13.2-linux-x86_64-setup.run
-./zephyr-sdk-0.13.2-linux-x86_64-setup.run -- -y -d $HVL_WORKSPACE_PATH/zephyr-sdk-0.13.2
 
 export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-export ZEPHYR_SDK_INSTALL_DIR=$HVL_WORKSPACE_PATH/zephyr-sdk-0.13.2
+export ZEPHYR_SDK_INSTALL_DIR=$HVL_WORKSPACE_PATH/zephyr-sdk-0.15.1
 
+cd $HVL_WORKSPACE_PATH
 
 west init -m https://github.com/OpenAMP/openamp-zephyr-staging.git --mr virtio-exp zephyrproject
 cd zephyrproject
@@ -171,18 +178,16 @@ cd $HVL_WORKSPACE_PATH/zephyrproject
 #filter petalinux host tools from PATH 
 export PATH=$(echo $PATH | tr ':' '\n'|grep -v 'petalinux/2020'|tr '\n' ':')
 
-west build -p auto -b qemu_cortex_r5 zephyr/samples/virtio/hvl_net_rng/
+west build -p auto -b qemu_cortex_r5 zephyr/samples/virtio/hvl_net_rng_reloc
 
 cp $HVL_WORKSPACE_PATH/zephyrproject/build/zephyr/zephyr.elf $HVL_WORKSPACE_PATH/target/hvl/
-#S4
-
 
 cd $HVL_WORKSPACE_PATH
 mkdir -p $HVL_WORKSPACE_PATH/mnt
 
 #sdcard
 cp $HVL_WORKSPACE_PATH/xilinx-zcu102-2020.2/pre-built/linux/images/petalinux-sdimage.wic $HVL_WORKSPACE_PATH/linux-sd.wic
-$HVL_WORKSPACE_PATH/qemu_inst/bin/qemu-img resize $HVL_WORKSPACE_PATH/linux-sd.wic 8G
+$QEMU_XLNX_PATH/qemu-img resize $HVL_WORKSPACE_PATH/linux-sd.wic 8G
 
 #parted resizepart 2 100% $HVL_WORKSPACE_PATH/linux-sd.wic
 #export SDLOOPDEV=$(basename $('"losetup |grep $HVL_WORKSPACE_PATH/linux-sd.wic|cut -d ' ' -f 1"' ))
@@ -211,7 +216,7 @@ echo "QEMU PMU"
 echo "--------"
 echo 'rm /tmp/qemu-memory-_*'
 echo
-echo "$HVL_WORKSPACE_PATH/qemu_inst/bin/qemu-system-microblazeel -M microblaze-fdt -nographic \
+echo "$QEMU_XLNX_PATH/qemu-system-microblazeel -M microblaze-fdt -nographic \
 -dtb $HVL_WORKSPACE_PATH/xilinx-zcu102-2020.2/pre-built/linux/images/zynqmp-qemu-multiarch-pmu.dtb \
 -kernel $HVL_WORKSPACE_PATH/xilinx-zcu102-2020.2/pre-built/linux/images/pmu_rom_qemu_sha3.elf \
 -device loader,file=$HVL_WORKSPACE_PATH/xilinx-zcu102-2020.2/pre-built/linux/images/pmufw.elf -machine-path /tmp
@@ -221,7 +226,7 @@ echo "$HVL_WORKSPACE_PATH/qemu_inst/bin/qemu-system-microblazeel -M microblaze-f
 echo "PETALINUX (A53)"
 echo "---------------"
 echo "
-$HVL_WORKSPACE_PATH/qemu_inst/bin/qemu-system-aarch64 -M arm-generic-fdt \
+$QEMU_XLNX_PATH/qemu-system-aarch64 -M arm-generic-fdt \
 -dtb $HVL_WORKSPACE_PATH/xilinx-zcu102-2020.2/pre-built/linux/images/zynqmp-qemu-multiarch-arm.dtb \
 -device loader,file=$HVL_WORKSPACE_PATH/xilinx-zcu102-2020.2/pre-built/linux/images/bl31.elf,cpu-num=0 \
 -global xlnx,zynqmp-boot.cpu-num=0 -global xlnx,zynqmp-boot.use-pmufw=true -machine-path /tmp -net nic -net nic -net nic -net nic \

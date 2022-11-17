@@ -145,7 +145,7 @@ insmod user-mbox.ko
 cp /hvl/zephyr.elf /lib/firmware/
 echo zephyr.elf >/sys/class/remoteproc/remoteproc0/firmware
 
-/hvl/lkvm run --debug --vxworks --rsld --pmm --debug-nohostfs --transport mmio --shmem-addr 0x77000000 --shmem-size 0x1000000 --cpus 1 --mem 128 --no-dtb --debug --rng --network mode=tap,tapif=tap0,trans=mmio --vproxy
+/hvl/lkvm run --debug --vxworks --rsld --pmm --debug-nohostfs --transport mmio --shmem-addr 0x37000000 --shmem-size 0x1000000 --cpus 1 --mem 128 --no-dtb --debug --rng --network mode=tap,tapif=tap0,trans=mmio --vproxy
 ```
 
 > If the lkvm run command fails with an error message similar to "Fatal: Guest init image not compiled in", please rerun it. The cause of this issue is under investigation.
@@ -158,7 +158,7 @@ telnet localhost 4321
 **T4: PetaLinux SSH session**
 
 ```
-ssh root@localhost -p 30022
+ssh -oHostKeyAlgorithms=+ssh-rsa root@127.0.0.1 -p 30022
 ``` 
 ```
 echo start >/sys/class/remoteproc/remoteproc0/state

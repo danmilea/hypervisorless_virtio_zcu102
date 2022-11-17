@@ -32,15 +32,15 @@
                         compatible = "shared-dma-pool";
                         reg = <0x0 0x78000000 0x0 0x100000>;
                 };
-                rproc_0_shmem: rproc@77000000 {
+                rproc_0_shmem: rproc@37000000 {
                         no-map;
                         compatible = "shared-dma-pool";
-                        reg = <0x0 0x77000000 0x0 0x1000000>;
+                        reg = <0x0 0x37000000 0x0 0x1000000>;
                 };
                 /* Memory for R5 firmware in DDR */
-                rproc_0_reserved: rproc@78100000 {
+                rproc_0_reserved: rproc@38000000 {
                         no-map;
-                        reg = <0x0 0x78100000 0x0 0x00600000>;
+                        reg = <0x0 0x38000000 0x0 0x00600000>;
                 };
 		};
 		amba {
@@ -48,7 +48,7 @@
 			shmd@0 {
 				/*no-map;*/
 				compatible = "generic-uio";
-				reg = <0x00 0x77000000 0x00 0x1000000>;
+				reg = <0x00 0x37000000 0x00 0x1000000>;
 			};
         };
 

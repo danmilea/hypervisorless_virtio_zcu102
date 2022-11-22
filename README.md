@@ -240,6 +240,39 @@ PING 192.168.200.254
 28 bytes from 192.168.200.254 to 192.168.200.2: icmp_seq=9 ttl=64 time=454 ms
 ```
 
+## Hypervisorless virtio binary demo (openamp/demo-lite)
 
+A binary-only version of the hypervisorless virtio setup can be used in a containerized deployment based on the openamp/demo-lite image from Docker Hub.
 
+```
+you@your-machine:~$ docker run -it openamp/demo-lite
+dev@openamp-demo:~$ qemu-zcu102 ./demo4
+```
 
+Let U-boot autoboot, don’t stop it. U-boot will tftp load uEnv.txt which will tftp load the kernel, dtb, and cpio.
+
+Use root as user to login to the A53 terminal and then run the demo setup script.
+
+```
+root@generic-arm64:~# /hvl/setup.sh
+```
+
+The Physical Machine Monitor will start.
+
+```
+/hvl/lkvm run --debug --vxworks --rsld --pmm --debug-nohostfs --transport mmio --shmem-addr 0x37000000 --shmem-size 0x1000000 --cpus 1 --mem 128 --no-dtb --debug --rng --network mode=tap,tapif=tap0,trans=mmio --vproxy
+  Info: (virtio/mmio.c) virtio_mmio_init:620: virtio-mmio.devices=0x200@0x37000000 [0x4d564b4c:0x4]
+[   48.008155] IPv6: ADDRCONF(NETDEV_CHANGE): tap0: link becomes ready
+  Info: (virtio/mmio.c) virtio_mmio_init:620: virtio-mmio.devices=0x200@0x37000200 [0x4d564b4c:0x1]
+```
+
+In the shell pane ssh into the QEMU machine and start the Zephyr instance on Cortex R5.
+```
+dev@openamp$ ssh qemu-zcu102
+root@generic-arm64:~# echo start >/sys/class/remoteproc/remoteproc0/state
+```
+
+The Zephyr command shell will be available in the 2nd UART, R5_0. You can interact with the Zephyr system using the shell commands described in the previous section to validate virtio networking between the R5 and A53 runtimes.
+
+You can terminate the PMM by issuing the following key sequence: **Ctrl+b Ctrl+b x**.
+When you are ready to stop QEMU, from the QEMU pane input **Ctrl-A x** and the QEMU instance will terminate.
